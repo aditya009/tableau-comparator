@@ -1,0 +1,16 @@
+# Optional: if you later want to reconcile several table pairs in one
+# run instead of always typing them in per-pipeline-trigger, list them
+# here and have main.py loop over this file instead of argparse.
+# Not wired in by default - kept simple until you actually need it.
+
+targets:
+  - name: orders
+    source: prod_catalog.sales.orders
+    target: prod_catalog_uc.sales.orders
+    compare_mode: full_row
+
+  - name: customers
+    source: prod_catalog.sales.customers
+    target: prod_catalog_uc.sales.customers
+    compare_mode: key
+    key_columns: [customer_id]

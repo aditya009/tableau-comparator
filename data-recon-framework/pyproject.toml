@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recon_framework"
+version = "0.1.0"
+description = "Databricks source-vs-target data reconciliation framework"
+requires-python = ">=3.10"
+dependencies = [
+    "databricks-sdk>=0.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "build>=1.0",
+    "pyspark>=3.5",
+]
+
+# These names ("reconcile", "list_catalogs") are exactly what
+# resources/recon_job.yml's python_wheel_task.entry_point values
+# must match.
+[project.scripts]
+reconcile = "recon_framework.main:main"
+list_catalogs = "recon_framework.catalog_utils:entrypoint_list_catalogs"
+
+[tool.setuptools.packages.find]
+where = ["src"]

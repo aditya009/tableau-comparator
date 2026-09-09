@@ -1,0 +1,61 @@
+resources:
+  jobs:
+    data_reconciliation:
+      name: "[${bundle.target}] data-reconciliation"
+
+      parameters:
+        - name: source_catalog
+          default: ""
+        - name: source_schema
+          default: ""
+        - name: source_table
+          default: ""
+        - name: target_catalog
+          default: ""
+        - name: target_schema
+          default: ""
+        - name: target_table
+          default: ""
+        - name: compare_mode
+          # "full_row" = exceptAll on every column
+          # "key"      = anti-join on key_columns only
+          default: "full_row"
+        - name: key_columns
+          # comma-separated, only used when compare_mode = key
+          default: ""
+
+      tasks:
+        - task_key: list_catalogs
+          python_wheel_task:
+            package_name: recon_framework
+            entry_point: list_catalogs
+          new_cluster: &recon_cluster
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "Standard_DS3_v2"
+            num_workers: 1
+            data_security_mode: SINGLE_USER
+
+        - task_key: reconcile
+          depends_on:
+            - task_key: list_catalogs
+          python_wheel_task:
+            package_name: recon_framework
+            entry_point: reconcile
+            named_parameters:
+              source_catalog: "{{job.parameters.source_catalog}}"
+              source_schema: "{{job.parameters.source_schema}}"
+              source_table: "{{job.parameters.source_table}}"
+              target_catalog: "{{job.parameters.target_catalog}}"
+              target_schema: "{{job.parameters.target_schema}}"
+              target_table: "{{job.parameters.target_table}}"
+              compare_mode: "{{job.parameters.compare_mode}}"
+              key_columns: "{{job.parameters.key_columns}}"
+          new_cluster: *recon_cluster
+
+      # Optional: notify on failure. Fill in a real notebook/webhook or remove.
+      # webhook_notifications:
+      #   on_failure:
+      #     - id: <notification-destination-id>
+
+      timeout_seconds: 3600
+      max_concurrent_runs: 1
