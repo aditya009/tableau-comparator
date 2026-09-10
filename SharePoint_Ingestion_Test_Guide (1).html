@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SharePoint Ingestion Test Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  :root{
+    --paper:#f2f6f4; --paper-raised:#ffffff; --ink:#16221f; --ink-soft:#4b5e59; --line:#d7e2de;
+    --accent:#1f7a72; --accent-ink:#eafbf8;
+    --ok-bg:#d9f0dc; --ok-fg:#1e5c1e;
+    --warn-bg:#fbe9c2; --warn-fg:#7a5a00;
+    --bad-bg:#f8d6d6; --bad-fg:#8a1f1f;
+    --conflict-bg:#e6dbf5; --conflict-fg:#4b2e7a;
+    --anomaly-bg:#f6dcc0; --anomaly-fg:#8a4a12;
+    --code-bg:#0f1e1c; --code-fg:#d6f3ec;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#0f1614; --paper-raised:#16201d; --ink:#e6efec; --ink-soft:#9fb3ad; --line:#25332f;
+      --accent:#5fd0c3; --accent-ink:#062825;
+      --ok-bg:#173a1f; --ok-fg:#8fe0a0;
+      --warn-bg:#3a2f10; --warn-fg:#f0c364;
+      --bad-bg:#3a1616; --bad-fg:#f0a3a3;
+      --conflict-bg:#2a1f3d; --conflict-fg:#d6b8f5;
+      --anomaly-bg:#3d2712; --anomaly-fg:#f0b077;
+      --code-bg:#081412; --code-fg:#bfeee4;
+      color-scheme: dark;
+    }
+  }
+
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    line-height:1.55;
+  }
+  h1,h2,h3{
+    font-family:"Source Serif 4", Georgia, serif;
+    font-weight:700;
+    text-wrap:balance;
+    color:var(--ink);
+    margin:0 0 .4em 0;
+  }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; }
+  code, .code-inline{
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    font-size:.86em;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:.05em .35em;
+  }
+
+  a{ color:var(--accent); }
+
+  .wrap{ max-width:900px; margin:0 auto; padding-inline:24px; }
+
+  nav.topbar{
+    position:sticky; top:0; z-index:5;
+    background:var(--paper-raised);
+    border-bottom:1px solid var(--line);
+  }
+  nav.topbar .wrap{
+    display:flex; flex-wrap:wrap; align-items:center; gap:18px;
+    padding-block:12px;
+  }
+  nav.topbar .brand{
+    font-family:"Source Serif 4", serif; font-weight:700; font-size:1.02rem;
+    white-space:nowrap;
+  }
+  nav.topbar .links{ display:flex; flex-wrap:wrap; gap:16px; font-size:.85rem; }
+  nav.topbar .links a{
+    color:var(--ink-soft); text-decoration:none; font-weight:500;
+  }
+  nav.topbar .links a:hover{ color:var(--accent); }
+
+  header.hero{ padding-block:40px 8px; }
+  header.hero .eyebrow{
+    font-family:"IBM Plex Mono", monospace; font-size:.72rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--accent); font-weight:600;
+  }
+  header.hero h1{ font-size:2rem; margin-top:.3em; }
+  header.hero p.lede{ color:var(--ink-soft); font-size:1.02rem; max-width:62ch; }
+  header.hero .meta{
+    margin-top:14px; font-size:.82rem; color:var(--ink-soft);
+    border-left:3px solid var(--accent); padding-left:12px;
+  }
+
+  section{ padding-block:34px; border-top:1px solid var(--line); }
+  section:first-of-type{ border-top:none; }
+  section h2{ font-size:1.35rem; }
+  section .section-sub{ color:var(--ink-soft); font-size:.92rem; max-width:66ch; margin-bottom:1.2em; }
+
+  .panel{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
+    padding:20px; overflow-x:auto;
+  }
+
+  .mermaid{ margin:0; background:transparent; }
+
+  .stage-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:14px; margin-top:18px;
+  }
+  .stage-card{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:8px;
+    padding:14px 16px;
+  }
+  .stage-card h3{
+    font-family:"IBM Plex Sans"; font-size:.82rem; font-weight:600;
+    text-transform:uppercase; letter-spacing:.03em; color:var(--accent); margin-bottom:.5em;
+  }
+  .stage-card ul{ margin:0; padding-left:1.1em; font-size:.86rem; color:var(--ink-soft); }
+  .stage-card li{ margin-bottom:.3em; }
+  .stage-card li:last-child{ margin-bottom:0; }
+
+  ol.steps{ list-style:none; margin:0; padding:0; counter-reset:step; }
+  ol.steps > li{
+    counter-increment:step;
+    display:grid; grid-template-columns:44px 1fr; gap:16px;
+    padding-block:18px; border-top:1px solid var(--line);
+  }
+  ol.steps > li:first-child{ border-top:none; padding-top:4px; }
+  ol.steps > li::before{
+    content:counter(step,decimal-leading-zero);
+    font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:.95rem;
+    color:var(--accent);
+  }
+  ol.steps h3{ font-size:1.02rem; margin-bottom:.25em; }
+  ol.steps p{ margin:.2em 0; color:var(--ink); }
+  ol.steps p.check{
+    font-size:.86rem; color:var(--ink-soft); margin-top:.5em;
+    border-left:2px solid var(--line); padding-left:10px;
+  }
+  ol.steps p.check b{ color:var(--ink); }
+
+  table.evidence{ border-collapse:collapse; width:100%; font-size:.85rem; min-width:680px; }
+  table.evidence th{
+    text-align:left; font-family:"IBM Plex Sans"; font-size:.76rem; text-transform:uppercase;
+    letter-spacing:.03em; color:var(--ink-soft); border-bottom:1px solid var(--line);
+    padding:8px 10px;
+  }
+  table.evidence td{
+    border-bottom:1px solid var(--line); padding:9px 10px; vertical-align:top;
+  }
+  table.evidence td.num{ font-family:"IBM Plex Mono", monospace; color:var(--accent); white-space:nowrap; }
+  table.evidence tr:last-child td{ border-bottom:none; }
+
+  .conflict-grid{ display:flex; flex-direction:column; gap:16px; margin-top:18px; }
+  .conflict-card{
+    border:1px solid var(--conflict-fg); background:var(--paper-raised);
+    border-radius:10px; padding:18px 20px;
+  }
+  .conflict-card h3{ font-size:1rem; margin-bottom:.6em; }
+  .conflict-cols{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:12px;
+  }
+  @media (max-width:640px){ .conflict-cols{ grid-template-columns:1fr; } }
+  .conflict-cols > div{
+    background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:10px 12px;
+    font-size:.86rem;
+  }
+  .conflict-cols .label{
+    font-family:"IBM Plex Mono"; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--ink-soft); display:block; margin-bottom:.4em;
+  }
+  .conflict-card .action{ font-size:.86rem; color:var(--ink-soft); }
+  .conflict-card .action b{ color:var(--ink); }
+
+  .pill{
+    display:inline-block; font-family:"IBM Plex Mono", monospace; font-size:.72rem; font-weight:600;
+    text-transform:uppercase; letter-spacing:.03em; padding:.18em .6em; border-radius:100px;
+    white-space:nowrap;
+  }
+  .pill.ok{ background:var(--ok-bg); color:var(--ok-fg); }
+  .pill.warn{ background:var(--warn-bg); color:var(--warn-fg); }
+  .pill.bad{ background:var(--bad-bg); color:var(--bad-fg); }
+  .pill.conflict{ background:var(--conflict-bg); color:var(--conflict-fg); }
+  .pill.anomaly{ background:var(--anomaly-bg); color:var(--anomaly-fg); }
+
+  .stat-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-top:18px; }
+  .stat-tile{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
+    padding:16px; text-align:left;
+  }
+  .stat-tile .n{ font-family:"IBM Plex Mono"; font-size:1.9rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  .stat-tile .lbl{ font-size:.78rem; color:var(--ink-soft); margin-top:.2em; }
+  .stat-tile.ok .n{ color:var(--ok-fg); }
+  .stat-tile.warn .n{ color:var(--warn-fg); }
+  .stat-tile.bad .n{ color:var(--bad-fg); }
+  .stat-tile.conflict .n{ color:var(--conflict-fg); }
+  .stat-tile.anomaly .n{ color:var(--anomaly-fg); }
+  .conflict-card.anomaly-card{ border-color:var(--anomaly-fg); }
+
+  footer{ padding-block:30px 50px; color:var(--ink-soft); font-size:.82rem; }
+  footer .wrap{ border-top:1px solid var(--line); padding-top:18px; }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand">SP Ingestion Test Guide</span>
+    <div class="links">
+      <a href="#flow">Pipeline flow</a>
+      <a href="#steps">Step-by-step</a>
+      <a href="#evidence">Reading the evidence doc</a>
+      <a href="#conflicts">Requirement conflicts</a>
+      <a href="#findings">Deeper findings</a>
+      <a href="#coverage">Coverage</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Pattern 3 · Generic SharePoint → Unity Catalog ingestion</span>
+    <h1>Understanding &amp; testing the SharePoint ingestion pipeline</h1>
+    <p class="lede">A walkthrough of what the pipeline is supposed to do, how to read the evidence pack against it, and where the requirement text and the actual build disagree — built from <code>Text.txt</code> (US-01 to US-07 plus the Databridge Pattern 3 design) and the 17-capture <code>Sharepoint Ingestion Screenshots.docx</code> from the 2026-09-07 test run.</p>
+    <p class="meta">Companion file: <b>SP_Ingestion_Test_Cases.xlsx</b> — 37 test cases, one row per acceptance criterion, with an evidence status and a place to log your own actual results and bug references.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="flow">
+  <h2>1 · The pipeline, end to end</h2>
+  <p class="section-sub">One generic Azure Data Factory pipeline serves every project — a project is onboarded purely by adding a section to <code>sp_control_config.yml</code>, no pipeline code change required.</p>
+
+  <div class="panel">
+<pre class="mermaid">
+flowchart TD
+    A[("SharePoint folder<br/>per project — e.g. QPS_Index")] --> B["sp_control_config.yml<br/>one job section per project"]
+    B --> C{"ADF trigger fires —<br/>current hour in trigger_hours?"}
+    C -- "no" --> C0["Section skipped, no error"]
+    C -- "yes, or manual/ad-hoc run" --> D["Incremental detection —<br/>compare vs ingestion_status_table watermark"]
+    D --> E["Download new/changed files to a<br/>timestamped snapshot folder"]
+    E --> F["Format processing —<br/>XLSX: one CSV per sheet · CSV: structural check"]
+    F --> G{"Metadata resolvable?<br/>same-name file overrides folder default"}
+    G -- "no" --> G0["Ingestion blocked, error logged"]
+    G -- "yes" --> H["Delta table load —<br/>literal table_name = 1 shared table,<br/>else 1 table per file/sheet"]
+    H --> I["Governance tagging —<br/>user-supplied tags + ADF system tags"]
+    I --> J["Status row written —<br/>success/failed, becomes next run's watermark"]
+    J -. "read on the next trigger" .-> D
+</pre>
+  </div>
+
+  <div class="stage-grid">
+    <div class="stage-card">
+      <h3>Config</h3>
+      <ul>
+        <li><code>sp_site</code>, <code>sp_folder_path</code>, <code>volume_path</code></li>
+        <li><code>file_pattern</code>: *.csv, *.xlsx only</li>
+        <li><code>trigger_hours</code>: list of eligible UTC hours</li>
+      </ul>
+    </div>
+    <div class="stage-card">
+      <h3>Detection &amp; landing</h3>
+      <ul>
+        <li>Watermark = last success in the status table</li>
+        <li>Snapshot folder: <code>YYYYMMDDTHHMMSSZ</code></li>
+        <li>Subfolders preserved relative to <code>sp_folder_path</code></li>
+      </ul>
+    </div>
+    <div class="stage-card">
+      <h3>Processing</h3>
+      <ul>
+        <li>XLSX sheet → its own CSV, per <code>Ingest_Sheets</code></li>
+        <li>Metadata gate: same-name .yml &gt; folder <code>_metadata.yml</code></li>
+        <li>No metadata resolvable → blocked, logged</li>
+      </ul>
+    </div>
+    <div class="stage-card">
+      <h3>Load &amp; tag</h3>
+      <ul>
+        <li>literal <code>table_name</code> → 1 shared table</li>
+        <li><code>filename_based</code> → 1 table per file/sheet</li>
+        <li>User tags + 10 ADF system tags applied</li>
+      </ul>
+    </div>
+    <div class="stage-card">
+      <h3>Audit</h3>
+      <ul>
+        <li>Row per file: status, timestamps, run id</li>
+        <li>Only <code>success</code> rows count as watermark</li>
+        <li>One failed file must not block the rest</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="steps">
+  <h2>2 · What to actually test, step by step</h2>
+  <p class="section-sub">Each step below maps to a node in the diagram above. Work through them in order against a live run — the "Check" line under each is the concrete thing to look for.</p>
+
+  <ol class="steps">
+    <li>
+      <h3>Confirm the control config is correct before the run starts</h3>
+      <p>Open <code>sp_control_config.yml</code> and read the job section you're testing (e.g. <code>qps_index</code> or <code>hmrc_test</code>).</p>
+      <p class="check"><b>Check:</b> <code>sp_folder_path</code>, <code>volume_path</code> and <code>ingestion_status_table</code> point where you expect, <code>file_pattern</code> is <code>*.csv</code>/<code>*.xlsx</code>, and <code>trigger_hours</code> covers the hour you intend to test at.</p>
+    </li>
+    <li>
+      <h3>Capture a "before" baseline</h3>
+      <p>Before triggering anything, screenshot the destination schema (should not exist yet, or should be missing the files you're about to add) and the SharePoint source folder as it currently stands.</p>
+      <p class="check"><b>Check:</b> this is exactly what screenshots 1, 2, 4 and 5 in the evidence doc do — they're your proof the run actually changed something.</p>
+    </li>
+    <li>
+      <h3>Trigger the pipeline and confirm hour-gating</h3>
+      <p>Run once inside a section's <code>trigger_hours</code> window, and — separately — once outside it.</p>
+      <p class="check"><b>Check:</b> in-window run processes the section; out-of-window run skips it silently (no error). A manual/ad-hoc trigger should process every section regardless of the hour.</p>
+    </li>
+    <li>
+      <h3>Verify incremental detection</h3>
+      <p>Re-run the same section a second time without changing any source file.</p>
+      <p class="check"><b>Check:</b> no new timestamp folder is created and no new status rows appear — this is the single most important behaviour to prove and the one the current evidence pack doesn't cover.</p>
+    </li>
+    <li>
+      <h3>Verify landing</h3>
+      <p>Open the volume path and find the new timestamped snapshot folder.</p>
+      <p class="check"><b>Check:</b> folder name matches <code>YYYYMMDDTHHMMSSZ</code>, original file names and subfolders (e.g. <code>QBE/</code>) are preserved, and only <code>.csv</code>/<code>.xlsx</code> files appear.</p>
+    </li>
+    <li>
+      <h3>Verify XLSX sheet splitting</h3>
+      <p>For a multi-sheet workbook, check the metadata that governs it (same-name <code>.yml</code>, or the folder's <code>_metadata.yml</code>) for an <code>ingest_sheets</code> value.</p>
+      <p class="check"><b>Check:</b> blank/absent → every sheet becomes its own CSV; a named sheet → only that sheet is extracted.</p>
+    </li>
+    <li>
+      <h3>Verify the metadata gate</h3>
+      <p>Try a file that has neither a same-name <code>.yml</code> nor a folder-level <code>_metadata.yml</code> to resolve from.</p>
+      <p class="check"><b>Check:</b> that file is blocked from ingestion and an error is logged — don't only test the happy path where metadata always resolves.</p>
+    </li>
+    <li>
+      <h3>Verify table load logic</h3>
+      <p>Compare the job's <code>table_name</code> setting against the tables that actually appear in the target schema afterwards.</p>
+      <p class="check"><b>Check:</b> a literal name (e.g. <code>hmrc-exrates-monthly</code>) → every file in that job lands in one table; <code>filename_based</code> → one table per file/sheet, named after it.</p>
+    </li>
+    <li>
+      <h3>Verify governance tags — fully, not partially</h3>
+      <p>Open a loaded table's full properties/tag list (expand any "+N more" — don't rely on a partial view).</p>
+      <p class="check"><b>Check:</b> all user-supplied tags and all 10 <code>_</code>-prefixed system tags are present with sensible values, including <code>_source_sheet_name</code> on an XLSX-derived table specifically.</p>
+    </li>
+    <li>
+      <h3>Verify the audit trail closes the loop</h3>
+      <p>Open the ingestion status table in full width (not a cropped view) for the run you just tested.</p>
+      <p class="check"><b>Check:</b> every required column is present and populated (project, file_name, sp_folder, status, timestamp, run id, file size, error message), and a deliberately bad file in the batch fails without blocking the rest.</p>
+    </li>
+  </ol>
+</section>
+
+<section id="evidence">
+  <h2>3 · How to read the screenshot evidence doc</h2>
+  <p class="section-sub">The 17 captures in <i>Sharepoint Ingestion Screenshots.docx</i> follow the pipeline in order: baseline → source → config → run → landing → tables → tags → data. Here's what each one is actually proving.</p>
+
+  <div class="panel">
+  <table class="evidence">
+    <thead><tr><th>#</th><th>Caption in the doc</th><th>What it actually shows</th><th>Maps to</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>"Current volume location… No content in volume"</td><td>Baseline: <code>generic_sp_vol</code> is empty before the run</td><td>Before-state for Step 5 (Landing)</td></tr>
+      <tr><td class="num">2</td><td>"Current Ingestion Table… Does not exist"</td><td>Baseline: <code>generic_sp</code> schema's 5 existing tables don't include <code>ingestion_status_table_v2</code> yet</td><td>Before-state for Step 9 (Audit)</td></tr>
+      <tr><td class="num">3</td><td>"Current Control Config"</td><td><code>sp_control_config.yml</code> — the two job sections under test, <code>qps_index</code> and <code>hmrc_test</code></td><td>Step 1 (Config)</td></tr>
+      <tr><td class="num">4</td><td>"Current Destination Table… Schema does not exist"</td><td>Baseline: <code>test_schema</code> isn't in the catalog's 16 schemas yet</td><td>Before-state for Step 7 (Load)</td></tr>
+      <tr><td class="num">5</td><td>"Current SP Sharepoint: QPS_Index"</td><td>Source folder listing — <code>QBE/</code> subfolder, <code>_metadata.yml</code>, and the raw csv/xlsx files</td><td>Before-state for Steps 5-6</td></tr>
+      <tr><td class="num">6</td><td>"QPS_Index Metadata"</td><td>Folder-level <code>_metadata.yml</code> — the governance default every file in the folder inherits</td><td>Step 7 (Metadata gate)</td></tr>
+      <tr><td class="num">7</td><td>"Metadata for QBE1-PROFBMD"</td><td><code>QBE/</code> subfolder listing — shows a same-name <code>.yml</code> companion sitting beside its <code>.xlsx</code></td><td>Step 7 (Metadata gate)</td></tr>
+      <tr><td class="num">8</td><td>(continues #7)</td><td><code>QBE1-PROFBMD.yml</code> content — same governance block, <i>plus</i> <code>ingest_sheets: SOV-Consolidated</code>, proving the override</td><td>Steps 6-7</td></tr>
+      <tr><td class="num">9</td><td>"ADF Pipeline"</td><td><code>Generic_SP_Pipeline</code> — the single generic pipeline, one Python activity (<code>Ingest_All</code>)</td><td>Architecture, not a specific step</td></tr>
+      <tr><td class="num">10</td><td>"ADF Run"</td><td>Pipeline run succeeded — run id <code>f714cf70…</code>, 4m14s, 9/7/2026 11:06 AM</td><td>Step 3 (Trigger)</td></tr>
+      <tr><td class="num">11</td><td>"ADF run reconciliation log"</td><td>Per-file/sheet outcome table for both jobs, plus "Ingest_All completed successfully"</td><td>Steps 6-8 (Processing → Load)</td></tr>
+      <tr><td class="num">12</td><td>"Ingestion and landing status in ingestion table"</td><td><code>ingestion_status_table_v2</code> sample rows — all <code>success</code> (cropped view — not all required columns visible)</td><td>Step 10 (Audit)</td></tr>
+      <tr><td class="num">13</td><td>"File download to volume"</td><td><code>generic_sp_vol</code> now containing <code>hmrc_test/</code> and <code>qps_index/</code></td><td>Step 5 (Landing)</td></tr>
+      <tr><td class="num">14</td><td>(continues #13)</td><td>Inside the <code>20260907T100745Z</code> snapshot — raw files, per-sheet CSVs, <code>QBE/</code> preserved</td><td>Steps 5-6</td></tr>
+      <tr><td class="num">15</td><td>"Table ingested in Test Schema"</td><td><code>test_schema</code> now holding 10 tables — proof the schema and tables were created fresh</td><td>Step 8 (Load)</td></tr>
+      <tr><td class="num">16</td><td>"Metadata records as Tag in Tables"</td><td><code>hmrc_exrates_monthly</code> table properties — a partial tag list ("+13 more" hidden)</td><td>Step 9 (Tagging)</td></tr>
+      <tr><td class="num">17</td><td>"Table data — example"</td><td><code>hmrc_exrates_monthly</code> sample rows — confirms the data itself is queryable and correctly typed</td><td>Step 8 (Load), sanity check</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="conflicts">
+  <h2>4 · Requirement conflicts worth raising first</h2>
+  <p class="section-sub">Before writing individual bugs against the user stories, these five contradictions between the written requirement and the Pattern 3 design / actual evidence are worth resolving with the BA or dev — testing against the wrong version of the spec produces false positives either way.</p>
+
+  <div class="conflict-grid">
+    <div class="conflict-card">
+      <h3><span class="pill conflict">Conflict</span>&nbsp; Control config schema (US-01 AC1)</h3>
+      <div class="conflict-cols">
+        <div><span class="label">US-01 says</span>Fields: <code>sp_folder_path</code>, <code>target_catalog</code>, <code>target_schema</code>, <code>volume_path</code>, <code>table_name</code>, <code>ingestion_status_table</code>, <code>file_pattern</code>, <code>metadata_file</code>.</div>
+        <div><span class="label">Actual config shows</span>Adds <code>sp_site</code>; nests <code>target_catalog</code>/<code>target_schema</code>/<code>table_name</code> under an optional <code>ingestion:</code> block; no <code>metadata_file</code> field at all.</div>
+      </div>
+      <p class="action"><b>Action:</b> confirm the Pattern 3 schema is what's actually deployed, then get US-01's AC text updated to match — don't score config-shape test cases against the older wording.</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill conflict">Conflict</span>&nbsp; Trigger frequency (US-02 AC1)</h3>
+      <div class="conflict-cols">
+        <div><span class="label">US-02 says</span>"ADF trigger fires every hour (on the hour)."</div>
+        <div><span class="label">Pattern 3 design says</span>"The ADF trigger fires every 5 minutes" — hourly gating happens via <code>trigger_hours</code> filtering within that.</div>
+      </div>
+      <p class="action"><b>Action:</b> these describe genuinely different recurrence schedules, not a wording nuance. Check the actual ADF trigger definition and confirm which cadence is live before testing "fires hourly."</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill conflict">Conflict</span>&nbsp; Status table naming (US-03 AC1)</h3>
+      <div class="conflict-cols">
+        <div><span class="label">US-03 says</span><code>qbq_brg_prd_supply.sp_ingestion.sp_ingestion</code> (or a domain equivalent).</div>
+        <div><span class="label">Actual config/evidence shows</span><code>qbq_brg_dev_supply.generic_sp.ingestion_status_table_v2</code> — and the schema also contains 5 other similarly-named candidate tables.</div>
+      </div>
+      <p class="action"><b>Action:</b> confirm <code>ingestion_status_table_v2</code> is the one true table before trusting any audit-trail evidence, and flag the look-alike duplicates (<code>sp_ingestion_status</code>, <code>_v1</code>, <code>_v2</code>, etc.) for cleanup so future testers don't check the wrong one.</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill conflict">Conflict</span>&nbsp; Metadata resolution mechanism (US-07 AC3)</h3>
+      <div class="conflict-cols">
+        <div><span class="label">US-07 says</span>Priority: Excel Metadata sheet &gt; same-name <code>.txt</code> file &gt; folder-level <code>metadata_file</code>.</div>
+        <div><span class="label">Pattern 3 design/evidence shows</span>Priority: same-name <code>.yml</code> companion &gt; folder-level <code>_metadata.yml</code>. No Excel sheet or <code>.txt</code> mechanism exists anywhere in the build.</div>
+      </div>
+      <p class="action"><b>Action:</b> the override <i>behaviour</i> is genuinely proven (screenshots 6-8, 11) — it's the described mechanism that's wrong. Get US-07's text corrected rather than failing this AC outright.</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill conflict">Conflict</span>&nbsp; CSV metadata requirement (Pattern 3 design, internal)</h3>
+      <div class="conflict-cols">
+        <div><span class="label">Design doc says</span>"A companion metadata <code>.txt</code> file must be present" for every CSV, or the file is skipped.</div>
+        <div><span class="label">Evidence shows</span>Every CSV (<code>inflation.csv</code>, <code>market.csv</code>, <code>syndicate.csv</code>, the <code>exrates-monthly-*.csv</code> files) ingested successfully with no <code>.txt</code> file anywhere in the source folder — only the folder's <code>.yml</code>.</div>
+      </div>
+      <p class="action"><b>Action:</b> this looks like stale wording in the design doc rather than a pipeline defect, since the <code>.yml</code>-based governance model is used consistently for both file types elsewhere. Get it confirmed rather than raised as a functional bug.</p>
+    </div>
+  </div>
+</section>
+
+<section id="findings">
+  <h2>5 · Deeper findings — second pass</h2>
+  <p class="section-sub">Going past "is this AC evidenced or not" and actually cross-checking the screenshots against each other and against the config turned up ten more things worth raising — some are new conflicts, some are governance/design risks nobody asked about yet, and one is a genuine unexplained anomaly in the environment itself.</p>
+
+  <div class="conflict-grid">
+    <div class="conflict-card anomaly-card">
+      <h3><span class="pill anomaly">Anomaly</span>&nbsp; An unexplained table appeared mid-run</h3>
+      <p>Before the run, the <code>generic_sp</code> schema held 5 tables (screenshot 1's tree). After the run, it holds 7 (screenshots 12-13) — <code>ingestion_status_table_v2</code> as expected, <b>plus</b> <code>ingestion_status_table_v1</code>, which appears nowhere in <code>sp_control_config.yml</code> (screenshot 3 only ever references <code>_v2</code>).</p>
+      <p class="action"><b>Action:</b> don't assume this is harmless. Ask the dev team directly where <code>ingestion_status_table_v1</code> came from — a second parallel test, a versioning quirk in the pipeline code, or genuine unexplained schema drift are all possibilities worth ruling out before sign-off.</p>
+    </div>
+
+    <div class="conflict-card anomaly-card">
+      <h3><span class="pill anomaly">Anomaly</span>&nbsp; Governance tags can be silently overwritten on shared tables</h3>
+      <p>Per the design, tags are applied as Delta table properties "after a successful table load" — a table-wide property, not a per-row one. For a job with a literal <code>table_name</code> (like <code>hmrc_test</code>, whose 5 monthly files all load into <code>hmrc_exrates_monthly</code>), if two source files ever carried different metadata, the later file's tags would overwrite the earlier file's with no error and no per-row record of which file's governance actually applies to which row.</p>
+      <p class="action"><b>Action:</b> not tested here because all 5 hmrc files evidently share identical metadata. Worth a dedicated test: load two files with deliberately different <code>Data_Owner</code>/<code>Sensitivity</code> into the same shared table and see what the resulting tags — and any audit expectations — actually look like.</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill conflict">Conflict</span>&nbsp; Blank vs. keyword for per-file tables (US-01 AC3 vs. Pattern 3 field reference)</h3>
+      <div class="conflict-cols">
+        <div><span class="label">US-01 AC3 says</span>"If <code>table_name</code> is blank, each file creates/updates a table named after the file."</div>
+        <div><span class="label">Pattern 3 field reference says</span>For the nested <code>ingestion.table_name</code>: "Blank/null is not a valid config" — you must use the keyword <code>filename_based</code> instead.</div>
+      </div>
+      <p class="action"><b>Action:</b> same intended outcome, two contradictory validation rules for how to trigger it. Confirm which one the pipeline actually enforces — a genuinely blank value might now be treated as an <i>invalid config</i> (skipped + logged, per US-01 AC4) rather than the per-file behaviour the older story promises.</p>
+    </div>
+
+    <div class="conflict-card anomaly-card">
+      <h3><span class="pill anomaly">Anomaly</span>&nbsp; A third, undocumented tagging vocabulary exists at the volume level</h3>
+      <p><code>generic_sp_vol</code> itself (screenshot 1) carries <code>databridge_data_classification</code>, <code>databridge_data_sensitivity</code>, and <code>databridge_dataset_owner</code> tags — field names that match neither the user-supplied tag list nor the ADF system tag list documented anywhere in <code>Text.txt</code>.</p>
+      <p class="action"><b>Action:</b> confirm whether this is a separate, platform-level tagging policy applied outside this pipeline's scope (in which case it's fine to ignore), or something this pipeline is also supposed to reconcile with the table-level tags — right now nothing says either way.</p>
+    </div>
+
+    <div class="conflict-card anomaly-card">
+      <h3><span class="pill anomaly">Anomaly</span>&nbsp; Table naming drops the sheet suffix when exactly one sheet is selected</h3>
+      <p>When <code>Ingest_Sheets</code> is blank (<code>mea_test.xlsx</code>), each table is named <code>&lt;file&gt;_&lt;sheet&gt;</code> (<code>mea_test_sheet1</code>, etc.). When <code>Ingest_Sheets</code> names exactly one sheet (<code>QBE1-PROFBMD.xlsx</code> → <code>SOV-Consolidated</code>), the resulting table drops the sheet suffix entirely — it's just <code>qbe1_profbmd</code>, not <code>qbe1_profbmd_sov_consolidated</code>.</p>
+      <p class="action"><b>Action:</b> not documented as intentional anywhere. If it is intentional, two different single-sheet files with the same file name but different sheet names would silently collide into the same table — worth confirming the rule and testing that collision case directly.</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill warn">Partial</span>&nbsp; Metadata override is only proven to add a field, not to change one</h3>
+      <p><code>QBE1-PROFBMD.yml</code> (screenshot 8) is byte-for-byte identical to the folder's <code>_metadata.yml</code> (screenshot 6) except for one added line, <code>ingest_sheets: SOV-Consolidated</code>. That proves a same-name file can <i>add</i> a field the folder default doesn't have — it doesn't prove a same-name file can <i>override the value</i> of a field the folder default already sets (e.g. a different <code>Data_Owner</code> or <code>Sensitivity</code>).</p>
+      <p class="action"><b>Action:</b> re-run with a same-name file that deliberately contradicts the folder default on an existing field, and confirm the file-level value actually wins.</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill bad">Not evidenced</span>&nbsp; hmrc_test's own metadata source was never captured</h3>
+      <p>The evidence pack shows <code>QPS_Index</code>'s folder metadata and its one file-level override in detail — but the <code>hmrc_exrates_monthly</code> table clearly resolved <i>some</i> metadata (<code>Data_Owner: swanand.gore@uk.qbe.com</code>, <code>Data_Domain: Insurance Claims</code>, screenshot 16), and there's no screenshot of the <code>.yml</code> that produced it.</p>
+      <p class="action"><b>Action:</b> capture the HMRC_FX_RATES folder's metadata file the same way screenshots 6-8 captured QPS_Index's, so the resolution logic is verifiable for both jobs, not just one.</p>
+    </div>
+
+    <div class="conflict-card">
+      <h3><span class="pill bad">Not evidenced</span>&nbsp; The test config can't actually prove per-project trigger frequencies</h3>
+      <p><code>qps_index</code> and <code>hmrc_test</code> both use the identical <code>trigger_hours: [8,9,10,11,12,13,14,15,16,17,18]</code> in the tested config (screenshot 3) — the whole point of US-02 is that different projects can run on different schedules, but nothing in the current setup is configured to actually show that.</p>
+      <p class="action"><b>Action:</b> before testing hour-gating at all, reconfigure the two jobs with genuinely different <code>trigger_hours</code> windows, or this AC stays structurally untestable no matter how many runs you capture.</p>
+    </div>
+
+    <div class="conflict-card anomaly-card">
+      <h3><span class="pill anomaly">Anomaly</span>&nbsp; The human-readable log and the audit table disagree on file paths</h3>
+      <p>The reconciliation log (screenshot 11) records <code>QBE1-PROFBMD.xlsx</code> with no subfolder prefix. The <code>ingestion_status_table_v2</code> sample (screenshot 12) records the same file with its full relative path, <code>.../qps_index/files/20260907T100745Z/QBE/QBE1-PROFBMD.xlsx</code>.</p>
+      <p class="action"><b>Action:</b> harmless while file names are unique, but if two files with the same name ever exist in different subfolders, the human-facing log becomes ambiguous even though the underlying audit table isn't. Worth confirming the log is meant to be a debugging convenience only, never the source of truth.</p>
+    </div>
+
+    <div class="conflict-card anomaly-card">
+      <h3><span class="pill anomaly">Anomaly</span>&nbsp; Two small schema-inference artifacts worth a sanity check</h3>
+      <p><code>Start_date</code>/<code>End_date</code> on <code>hmrc_exrates_monthly</code> are inferred as plain strings (<code>01/06/2026</code>) rather than a date type, and one column is literally named <code>Currency_Units_per__1</code> — a double underscore that reads like an auto-sanitized special character from the original source header (screenshot 17).</p>
+      <p class="action"><b>Action:</b> neither breaks ingestion, but both are the kind of thing a downstream analyst trips over immediately. Confirm with the business whether string dates and the mangled column name are acceptable as-is, or whether the schema-inference step needs a type/name-mapping override.</p>
+    </div>
+  </div>
+</section>
+
+<section id="coverage">
+  <h2>6 · Current evidence coverage</h2>
+  <p class="section-sub">Across the 47 test cases in the companion spreadsheet (37 from the first pass, 10 from the deeper second pass), mapped against every AC in US-01 through US-07 plus the Pattern 3 design specifics:</p>
+
+  <div class="stat-row">
+    <div class="stat-tile ok"><div class="n">10</div><div class="lbl">Evidenced</div></div>
+    <div class="stat-tile warn"><div class="n">5</div><div class="lbl">Partial</div></div>
+    <div class="stat-tile bad"><div class="n">20</div><div class="lbl">Not evidenced</div></div>
+    <div class="stat-tile conflict"><div class="n">6</div><div class="lbl">Requirement conflicts</div></div>
+    <div class="stat-tile anomaly"><div class="n">6</div><div class="lbl">Anomalies / design risks</div></div>
+  </div>
+
+  <p class="section-sub" style="margin-top:18px;">The two biggest single gaps: nothing in the pack proves incremental detection (every capture comes from one first-ever run), and nobody has explained why <code>ingestion_status_table_v1</code> exists. Before this pipeline is signed off, get a second run (no source changes), a negative-path run (one bad file, one file with no metadata, one out-of-window hour), and a straight answer on the stray table. Full detail, evidence references and space to log your own results are in <b>SP_Ingestion_Test_Cases.xlsx</b>.</p>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    Built from <code>Text.txt</code> (US-01–US-07 + Databridge Pattern 3 design doc) and <code>Sharepoint Ingestion Screenshots.docx</code> (17 captures, run of 2026-09-07). Status colours: <span class="pill ok">Evidenced</span> <span class="pill warn">Partial</span> <span class="pill bad">Not evidenced</span> <span class="pill conflict">Conflict</span>.
+  </div>
+</footer>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+</script>
+</body>
+</html>
